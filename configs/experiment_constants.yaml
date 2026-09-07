@@ -1,0 +1,44 @@
+# This file is the single source of truth for every DPO failure experiment.
+# A failure scenario may only override its explicit injector setting.
+experiment:
+  seed: 42
+
+model:
+  hub_id: Qwen/Qwen2.5-1.5B-Instruct
+  local_path: /workspace/zzc/models/Qwen2.5-1.5B-Instruct
+  torch_dtype: bfloat16
+
+dpo:
+  beta: 0.1
+  learning_rate: 5.0e-7
+  train_subset_size: 5000
+
+data:
+  ultrafeedback:
+    path: /workspace/zzc/rl-failures/data/ultrafeedback_binarized
+    train_file: data/train-00000-of-00001.parquet
+    test_file: data/test-00000-of-00001.parquet
+    eval_subset_size: 1000
+  ifeval:
+    path: /workspace/zzc/rl-failures/data/ifeval/ifeval_input_data.jsonl
+    eval_subset_size: all
+  gsm8k:
+    path: /workspace/zzc/rl-failures/data/gsm8k/main/test-00000-of-00001.parquet
+    eval_subset_size: 250
+
+decoding:
+  do_sample: false
+  max_new_tokens: 512
+  use_cache: true
+
+reporting:
+  output_dir: /workspace/zzc/rl-failures/results
+  metrics:
+    - ultrafeedback_preference_accuracy
+    - ifeval_strict
+    - gsm8k_accuracy
+    - avg_response_length
+
+runtime:
+  cuda_device: 2
+  require_exclusive_idle_gpu: true
