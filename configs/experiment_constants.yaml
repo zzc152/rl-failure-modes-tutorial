@@ -5,7 +5,7 @@ experiment:
 
 model:
   hub_id: Qwen/Qwen2.5-1.5B-Instruct
-  local_path: /workspace/zzc/models/Qwen2.5-1.5B-Instruct
+  local_path: models/Qwen2.5-1.5B-Instruct
   torch_dtype: bfloat16
 
 dpo:
@@ -15,15 +15,15 @@ dpo:
 
 data:
   ultrafeedback:
-    path: /workspace/zzc/rl-failures/data/ultrafeedback_binarized
+    path: data/ultrafeedback_binarized
     train_file: data/train-00000-of-00001.parquet
     test_file: data/test-00000-of-00001.parquet
     eval_subset_size: 1000
   ifeval:
-    path: /workspace/zzc/rl-failures/data/ifeval/ifeval_input_data.jsonl
+    path: data/ifeval/ifeval_input_data.jsonl
     eval_subset_size: all
   gsm8k:
-    path: /workspace/zzc/rl-failures/data/gsm8k/main/test-00000-of-00001.parquet
+    path: data/gsm8k/main/test-00000-of-00001.parquet
     eval_subset_size: 250
 
 decoding:
@@ -32,13 +32,9 @@ decoding:
   use_cache: true
 
 reporting:
-  output_dir: /workspace/zzc/rl-failures/results
+  output_dir: results
   metrics:
     - ultrafeedback_preference_accuracy
     - ifeval_strict
     - gsm8k_accuracy
     - avg_response_length
-
-runtime:
-  cuda_device: 2
-  require_exclusive_idle_gpu: true

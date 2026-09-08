@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pyarrow.parquet as pq
 
 
-ROOT = Path("/workspace/zzc/rl-failures/data")
+ROOT = Path(os.environ.get("RL_FAILURES_ROOT", Path(__file__).resolve().parents[1])) / "data"
 
 
 def parquet_summary(path: Path) -> None:

@@ -33,85 +33,52 @@ scenario 只能修改自己的故障注入配置，不能暗中改变基线常�
 | regression guard | GSM8K main test | seed=42 固定抽样 250 条 |
 | generation behavior | 所有生成评测 | 贪心解码、最多 512 tokens |
 
-基线与后续实验均只在启动前确认没有计算进程的单张 GPU 上运行；当前固定使用远程 GPU 2。
+## Quick Start
 
-## 原始模型基线
-
-已在固定配置下评测 `Qwen2.5-1.5B-Instruct`。这些数值是后续正常 DPO 与
-failure mode 的对照点，而非通过训练得到的结果。
-
-| 指标 | 基线结果 |
-| --- | ---: |
-| UltraFeedback held-out preference accuracy | 57.6%（1,000 对） |
-| IFEval strict | 39.93% |
-| GSM8K accuracy | 66.4%（固定 250 条） |
-| 平均回复长度 | 166.0 词 |
-
-## 环境
-
-实验使用 Python 3.10 与 CUDA GPU。建议为项目创建独立 Conda 环境：
+### 1. 创建环境
 
 ```bash
-conda create -y -p /workspace/zzc/envs/rl-failures python=3.10
-conda activate /workspace/zzc/envs/rl-failures
-python -m pip install torch --index-url https://download.pytorch.org/whl/cu128
-python -m pip install transformers datasets accelerate pyyaml sentencepiece \
-  huggingface_hub absl-py langdetect nltk
+conda create -n rl-failures python=3.10 -y
+conda activate rl-failures
+pip install -r requirements.txt
 ```
 
-IFEval 的 strict evaluator 来自 Google Research：
+### 2. 下载模型与数据
 
-```bash
-git clone --depth 1 --filter=blob:none --sparse \
-  https://github.com/google-research/google-research.git third_party/google-research
-git -C third_party/google-research sparse-checkout set instruction_following_eval
-python -m nltk.downloader punkt_tab
-```
-
-## 模型与数据下载
-
-本项目约定以下远程目录；模型和数据均被 `.gitignore` 排除，不能提交到 GitHub。
-
-```text
-/workspace/zzc/
-├── models/Qwen2.5-1.5B-Instruct/
-├── rl-failures/data/
-└── envs/rl-failures/
-```
-
-以下命令使用 Hugging Face 镜像站；`HF_HUB_DISABLE_XET=1` 可避免部分环境
-在 Xet 下载链路上认证失败。
+项目使用 Hugging Face 镜像。模型和数据只保存在项目目录内，且已被 Git 忽略：
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
 export HF_HUB_DISABLE_XET=1
 
-# Model
+mkdir -p models data
+
+# 模型 → models/Qwen2.5-1.5B-Instruct/
 hf download Qwen/Qwen2.5-1.5B-Instruct \
-  --local-dir /workspace/zzc/models/Qwen2.5-1.5B-Instruct
+  --local-dir models/Qwen2.5-1.5B-Instruct
 
-# DPO train set and in-distribution diagnostic
+# DPO 训练集与 ID preference diagnostic → data/ultrafeedback_binarized/
 hf download trl-lib/ultrafeedback_binarized --repo-type dataset \
-  --local-dir /workspace/zzc/rl-failures/data/ultrafeedback_binarized
+  --local-dir data/ultrafeedback_binarized
 
-# Primary clean evaluation
+# 主外部评测 → data/ifeval/
 hf download google/IFEval --repo-type dataset \
-  --local-dir /workspace/zzc/rl-failures/data/ifeval
+  --local-dir data/ifeval
 
-# Regression guard; use the `main` configuration
+# 能力回归评测 → data/gsm8k/
 hf download openai/gsm8k --repo-type dataset \
-  --local-dir /workspace/zzc/rl-failures/data/gsm8k
+  --local-dir data/gsm8k
 ```
 
-## 运行基线
+下载完成后的目录结构：
 
-先确认所选 GPU 没有其他计算进程，再运行。示例中的 GPU 2 仅是当前服务器的
-空闲卡选择，不是算法超参数。
-
-```bash
-CUDA_VISIBLE_DEVICES=2 python scripts/benchmark_base_model.py
-python scripts/finalize_base_metrics.py
+```text
+rl-failures/
+├── models/Qwen2.5-1.5B-Instruct/
+└── data/
+    ├── ultrafeedback_binarized/
+    ├── ifeval/
+    └── gsm8k/
 ```
 
-结果会保存到 `results/base_model/`，包括逐题生成、IFEval strict 详情和
-`metrics.json`。这些运行产物默认不提交。
+`models/`、`data/`、`results/`、日志及缓存均不会提交到 GitHub。

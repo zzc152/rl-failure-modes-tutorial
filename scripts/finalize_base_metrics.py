@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
 import yaml
 
 
-PROJECT = Path("/workspace/zzc/rl-failures")
+PROJECT = Path(os.environ.get("RL_FAILURES_ROOT", Path(__file__).resolve().parents[1]))
 RESULTS = PROJECT / "results/base_model"
 
 
@@ -33,7 +34,8 @@ def main() -> None:
     sys.path.insert(0, str(PROJECT / "third_party/google-research"))
     from instruction_following_eval import evaluation_lib  # pylint: disable=import-outside-toplevel
 
-    ifeval_inputs = evaluation_lib.read_prompt_list(str(Path(config["data"]["ifeval"]["path"])))
+    ifeval_path = PROJECT / config["data"]["ifeval"]["path"]
+    ifeval_inputs = evaluation_lib.read_prompt_list(str(ifeval_path))
     responses = {row["prompt"]: row["response"] for row in ifeval_outputs}
     strict = [evaluation_lib.test_instruction_following_strict(item, responses) for item in ifeval_inputs]
     write_jsonl(

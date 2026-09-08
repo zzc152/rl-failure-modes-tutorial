@@ -1,13 +1,14 @@
 """Small, CPU-only health check for UltraFeedback chat-token construction."""
 
+import os
 from pathlib import Path
 
 import pyarrow.parquet as pq
 from transformers import AutoTokenizer
 
 
-PROJECT = Path("/workspace/zzc/rl-failures")
-MODEL = Path("/workspace/zzc/models/Qwen2.5-1.5B-Instruct")
+PROJECT = Path(os.environ.get("RL_FAILURES_ROOT", Path(__file__).resolve().parents[1]))
+MODEL = PROJECT / "models/Qwen2.5-1.5B-Instruct"
 DATA = PROJECT / "data/ultrafeedback_binarized/data/test-00000-of-00001.parquet"
 
 

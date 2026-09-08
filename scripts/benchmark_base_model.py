@@ -17,8 +17,13 @@ import yaml
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-PROJECT = Path("/workspace/zzc/rl-failures")
+PROJECT = Path(os.environ.get("RL_FAILURES_ROOT", Path(__file__).resolve().parents[1]))
 CONFIG_PATH = PROJECT / "configs/experiment_constants.yaml"
+
+
+def project_path(path: str) -> Path:
+    candidate = Path(path)
+    return candidate if candidate.is_absolute() else PROJECT / candidate
 
 
 def rank_info() -> tuple[int, int, int]:
@@ -132,21 +137,22 @@ def main() -> None:
     random.seed(config["experiment"]["seed"])
     torch.manual_seed(config["experiment"]["seed"])
 
-    results = Path(config["reporting"]["output_dir"]) / "base_model"
+    results = project_path(config["reporting"]["output_dir"]) / "base_model"
     results.mkdir(parents=True, exist_ok=True)
-    tokenizer = AutoTokenizer.from_pretrained(config["model"]["local_path"])
+    model_path = project_path(config["model"]["local_path"])
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForCausalLM.from_pretrained(
-        config["model"]["local_path"], torch_dtype=torch.bfloat16
+        model_path, torch_dtype=torch.bfloat16
     ).to(device).eval()
 
-    uf_path = Path(config["data"]["ultrafeedback"]["path"]) / config["data"]["ultrafeedback"]["test_file"]
+    uf_path = project_path(config["data"]["ultrafeedback"]["path"]) / config["data"]["ultrafeedback"]["test_file"]
     uf_rows = pq.read_table(uf_path).to_pylist()[: config["data"]["ultrafeedback"]["eval_subset_size"]]
     local_uf = [row for _, row in shard(uf_rows, rank, world_size)]
     preference_scores = conditional_logps(model, tokenizer, local_uf, device)
     with (results / f"uf_rank{rank}.json").open("w", encoding="utf-8") as handle:
         json.dump(preference_scores, handle)
 
-    with Path(config["data"]["ifeval"]["path"]).open(encoding="utf-8") as handle:
+    with project_path(config["data"]["ifeval"]["path"]).open(encoding="utf-8") as handle:
         ifeval_rows = [json.loads(line) for line in handle]
     local_ifeval = shard(ifeval_rows, rank, world_size)
     ifeval_prompts = [chat_prompt(tokenizer, row["prompt"]) for _, row in local_ifeval]
@@ -157,7 +163,7 @@ def main() -> None:
          for (index, row), response in zip(local_ifeval, ifeval_responses)),
     )
 
-    gsm_path = Path(config["data"]["gsm8k"]["path"])
+    gsm_path = project_path(config["data"]["gsm8k"]["path"])
     gsm_rows = pq.read_table(gsm_path).to_pylist()
     sampled_indices = sorted(random.Random(config["experiment"]["seed"]).sample(
         range(len(gsm_rows)), config["data"]["gsm8k"]["eval_subset_size"]
@@ -191,7 +197,7 @@ def main() -> None:
 
         sys.path.insert(0, str(PROJECT / "third_party/google-research"))
         from instruction_following_eval import evaluation_lib  # pylint: disable=import-outside-toplevel
-        ifeval_inputs = evaluation_lib.read_prompt_list(str(Path(config["data"]["ifeval"]["path"])))
+        ifeval_inputs = evaluation_lib.read_prompt_list(str(project_path(config["data"]["ifeval"]["path"])))
         responses = {row["prompt"]: row["response"] for row in ifeval_outputs}
         strict = [evaluation_lib.test_instruction_following_strict(item, responses) for item in ifeval_inputs]
         ifeval_strict = sum(item.follow_all_instructions for item in strict) / len(strict)

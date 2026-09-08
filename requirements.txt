@@ -1,0 +1,11 @@
+torch>=2.5
+transformers>=4.45
+datasets>=3.0
+accelerate>=1.0
+pyarrow>=15.0
+PyYAML>=6.0
+sentencepiece>=0.2
+huggingface_hub>=0.26
+absl-py>=2.0
+langdetect>=1.0.9
+nltk>=3.9
