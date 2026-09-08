@@ -82,3 +82,16 @@ rl-failures/
 ```
 
 `models/`、`data/`、`results/`、日志及缓存均不会提交到 GitHub。
+
+## 一键运行当前 benchmark
+
+完成上面的模型和数据下载后，运行：
+
+```bash
+bash scripts/run_base_benchmark.sh
+```
+
+该命令会按需获取 IFEval 的离线 strict evaluator、下载 NLTK tokenizer，随后生成并
+汇总 UltraFeedback held-out preference accuracy、IFEval strict、GSM8K accuracy 与平均回复长度。
+默认使用当前可见的第一张 CUDA GPU；如需选择设备，请在命令前设置
+`CUDA_VISIBLE_DEVICES`，例如 `CUDA_VISIBLE_DEVICES=1 bash scripts/run_base_benchmark.sh`。
