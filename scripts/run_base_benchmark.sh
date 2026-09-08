@@ -12,6 +12,10 @@ if [[ ! -f "${EVALUATOR_ROOT}/instruction_following_eval/evaluation_lib.py" ]]; 
   git -C "${EVALUATOR_ROOT}" sparse-checkout set instruction_following_eval
 fi
 
-python -m nltk.downloader punkt_tab
+if python -c "import nltk; nltk.data.find('tokenizers/punkt_tab')"; then
+  echo "[skip] NLTK punkt_tab already exists"
+else
+  python -m nltk.downloader punkt_tab
+fi
 python "${PROJECT_ROOT}/scripts/benchmark_base_model.py"
 python "${PROJECT_ROOT}/scripts/finalize_base_metrics.py"

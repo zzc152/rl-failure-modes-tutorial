@@ -45,29 +45,11 @@ pip install -r requirements.txt
 
 ### 2. 下载模型与数据
 
-项目使用 Hugging Face 镜像。模型和数据只保存在项目目录内，且已被 Git 忽略：
+项目使用 Hugging Face 镜像。下载脚本会先检查关键文件：完整资产会跳过，
+缺失或不完整的资产才会下载或续传。模型和数据只保存在项目目录内，且已被 Git 忽略：
 
 ```bash
-export HF_ENDPOINT=https://hf-mirror.com
-export HF_HUB_DISABLE_XET=1
-
-mkdir -p models data
-
-# 模型 → models/Qwen2.5-1.5B-Instruct/
-hf download Qwen/Qwen2.5-1.5B-Instruct \
-  --local-dir models/Qwen2.5-1.5B-Instruct
-
-# DPO 训练集与 ID preference diagnostic → data/ultrafeedback_binarized/
-hf download trl-lib/ultrafeedback_binarized --repo-type dataset \
-  --local-dir data/ultrafeedback_binarized
-
-# 主外部评测 → data/ifeval/
-hf download google/IFEval --repo-type dataset \
-  --local-dir data/ifeval
-
-# 能力回归评测 → data/gsm8k/
-hf download openai/gsm8k --repo-type dataset \
-  --local-dir data/gsm8k
+bash scripts/download_assets.sh
 ```
 
 下载完成后的目录结构：
