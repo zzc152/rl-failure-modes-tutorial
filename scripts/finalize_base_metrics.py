@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 import os
 import sys
+import argparse
 from pathlib import Path
 
 import yaml
 
 
 PROJECT = Path(os.environ.get("RL_FAILURES_ROOT", Path(__file__).resolve().parents[1]))
-RESULTS = PROJECT / "results/base_model"
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -26,10 +26,14 @@ def write_jsonl(path: Path, rows: list[dict]) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--run-name", default="base_model")
+    cli = parser.parse_args()
+    results = PROJECT / "results" / cli.run_name
     config = yaml.safe_load((PROJECT / "configs/experiment_constants.yaml").read_text(encoding="utf-8"))
-    preference_scores = json.loads((RESULTS / "uf_rank0.json").read_text(encoding="utf-8"))
-    ifeval_outputs = read_jsonl(RESULTS / "ifeval_responses.jsonl")
-    gsm_outputs = read_jsonl(RESULTS / "gsm8k_responses.jsonl")
+    preference_scores = json.loads((results / "uf_rank0.json").read_text(encoding="utf-8"))
+    ifeval_outputs = read_jsonl(results / "ifeval_responses.jsonl")
+    gsm_outputs = read_jsonl(results / "gsm8k_responses.jsonl")
 
     sys.path.insert(0, str(PROJECT / "third_party/google-research"))
     from instruction_following_eval import evaluation_lib  # pylint: disable=import-outside-toplevel
@@ -39,7 +43,7 @@ def main() -> None:
     responses = {row["prompt"]: row["response"] for row in ifeval_outputs}
     strict = [evaluation_lib.test_instruction_following_strict(item, responses) for item in ifeval_inputs]
     write_jsonl(
-        RESULTS / "ifeval_strict_details.jsonl",
+        results / "ifeval_strict_details.jsonl",
         [{"follow_all_instructions": item.follow_all_instructions} for item in strict],
     )
     metrics = {
@@ -50,7 +54,7 @@ def main() -> None:
         "avg_response_length": sum(len(row["response"].split()) for row in ifeval_outputs + gsm_outputs) / (len(ifeval_outputs) + len(gsm_outputs)),
         "constants": config,
     }
-    (RESULTS / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (results / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     print(json.dumps(metrics, indent=2))
 
 

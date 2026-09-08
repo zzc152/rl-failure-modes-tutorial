@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import random
@@ -128,6 +129,10 @@ def write_jsonl(path: Path, rows: Iterable[dict]) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model-path", help="Project-relative or absolute checkpoint path")
+    parser.add_argument("--run-name", default="base_model")
+    cli = parser.parse_args()
     rank, world_size, local_rank = rank_info()
     if world_size > 1:
         dist.init_process_group("nccl")
@@ -137,9 +142,9 @@ def main() -> None:
     random.seed(config["experiment"]["seed"])
     torch.manual_seed(config["experiment"]["seed"])
 
-    results = project_path(config["reporting"]["output_dir"]) / "base_model"
+    results = project_path(config["reporting"]["output_dir"]) / cli.run_name
     results.mkdir(parents=True, exist_ok=True)
-    model_path = project_path(config["model"]["local_path"])
+    model_path = project_path(cli.model_path or config["model"]["local_path"])
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     model = AutoModelForCausalLM.from_pretrained(
         model_path, torch_dtype=torch.bfloat16

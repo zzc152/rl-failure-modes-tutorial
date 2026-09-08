@@ -1,0 +1,23 @@
+experiment: dpo_clean
+
+model: Qwen/Qwen2.5-1.5B-Instruct
+reference_model: Qwen/Qwen2.5-1.5B-Instruct
+
+dataset:
+  name: trl-lib/ultrafeedback_binarized
+  train_examples: 5000
+  seed: 42
+
+dpo:
+  beta: 0.1
+  learning_rate: 5.0e-7
+  batch_size: 2
+  gradient_accumulation_steps: 8
+  max_length: 2048
+  bf16: true
+  num_train_epochs: 1
+
+evaluation:
+  preference_eval: true
+  ifeval: true
+  gsm8k: true
